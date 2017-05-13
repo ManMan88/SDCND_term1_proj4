@@ -21,6 +21,8 @@ def process_image(img):
     leftLane.addLane(leftx,lefty)
     rightLane.addLane(rightx,righty)
     lf.checkDetection(leftLane,rightLane)
+    leftLane.updateHistory()
+    rightLane.updateHistory()
     leftLane.deriveGoodFit()
     rightLane.deriveGoodFit()
     
@@ -33,8 +35,8 @@ def process_image(img):
 lf = ld.LanesFinder()
 leftLane = ld.Lane()
 rightLane = ld.Lane()
-vid_output = './output_videos/harder_challenge_video.mp4'
-clip1 = VideoFileClip('./harder_challenge_video.mp4')
+vid_output = './output_videos/project_video.mp4'
+clip1 = VideoFileClip('./project_video.mp4')
 proj_clip = clip1.fl_image(process_image) #NOTE: this function expects color images!!
 proj_clip.write_videofile(vid_output, audio=False)
 

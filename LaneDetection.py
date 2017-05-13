@@ -149,7 +149,7 @@ class LanesFinder(object):
     def checkDetection(self,leftLane,rightLane,curveOffset=500,baseOffset=0.1,fitOffset=1,laneWidth=3.7):
         leftLane.detected = True
         rightLane.detected = True
-        if len(leftLane.baseHistory) > 0:
+        if not all(v == 0 for v in leftLane.baseHistory) or not all(v == 0 for v in rightLane.baseHistory):
             if abs((leftLane.current_base + rightLane.current_base)/2 - laneWidth) > 2*fitOffset:
                 print('base difference too large')
                 if abs(leftLane.movingAverage(leftLane.baseHistory)-leftLane.current_base) >  baseOffset:
@@ -159,19 +159,19 @@ class LanesFinder(object):
                     print('right base offsets too large')
                     rightLane.detected = False
             if abs(leftLane.current_curve - rightLane.current_curve) > curveOffset:
-                print('curve difference too large')
+                print('curve difference too large',leftLane.current_curve - rightLane.current_curve)
                 if abs(leftLane.movingAverage(leftLane.curveHistory)-leftLane.current_curve) > curveOffset:
-                    print('left curve offsets too large')
+                    print('left curve offsets too large',abs(leftLane.movingAverage(leftLane.curveHistory)-leftLane.current_curve))
                     leftLane.detected = False
                 if abs(rightLane.movingAverage(rightLane.curveHistory)-rightLane.current_curve) > curveOffset:
-                    print('right curve offsets too large')
+                    print('right curve offsets too large',abs(rightLane.movingAverage(rightLane.curveHistory)-rightLane.current_curve))
                     rightLane.detected = False
-            if (abs(leftLane.current_fit[0] - rightLane.current_curve[0]) > fitOffset) or (abs(leftLane.current_fit[1] - rightLane.current_curve[1]) > fitOffset):
+            if (abs(leftLane.current_fit[0] - rightLane.current_fit[0]) > fitOffset) or (abs(leftLane.current_fit[1] - rightLane.current_fit[1]) > fitOffset):
                 print('fit[0] difference too large')
-                if (abs(leftLane.movingAverage(leftLane.fitHistory[:,0])-leftLane.current_fit[0]) > fitOffset) or (abs(leftLane.movingAverage(leftLane.fitHistory[:,1])-leftLane.current_fit[1]) > fitOffset):
+                if (abs(leftLane.movingAverage(np.array(leftLane.fitHistory)[:,0])-leftLane.current_fit[0]) > fitOffset) or (abs(leftLane.movingAverage(np.array(leftLane.fitHistory)[:,1])-leftLane.current_fit[1]) > fitOffset):
                     print('left fit offsets too large')
                     leftLane.detected = False
-                if (abs(rightLane.movingAverage(rightLane.fitHistory[:,0])-rightLane.current_fit[0]) > fitOffset) or (abs(rightLane.movingAverage(rightLane.fitHistory[:,1])-rightLane.current_fit[1]) > fitOffset):
+                if (abs(rightLane.movingAverage(np.array(rightLane.fitHistory)[:,0])-rightLane.current_fit[0]) > fitOffset) or (abs(rightLane.movingAverage(np.array(rightLane.fitHistory)[:,1])-rightLane.current_fit[1]) > fitOffset):
                     print('right fit offsets too large')
                     rightLane.detected = False
         else:
@@ -235,8 +235,8 @@ class Lane(object):
         fit_m = self._fitPoly(x2m_per_pix*x,y2m_per_pix*y)
         return ((1 + (2*fit_m[0]*self.y_eval*y2m_per_pix + fit_m[1])**2)**1.5) / np.absolute(2*fit_m[0])
             
-    def updateHistory(self,x,y):
-        if len(self.baseHistory) > 0:
+    def updateHistory(self):
+        if len(self.baseHistory) == self.hisotry_buf:
             self.baseHistory.pop(0)
             self.curveHistory.pop(0)
             self.xHistory.pop(0)
@@ -245,9 +245,15 @@ class Lane(object):
         if self.detected:
             self.baseHistory.append(self.current_base)
             self.curveHistory.append(self.current_curve)
-            self.xHistory.append(x)
-            self.yHistory.append(y)
-            self.fitHistory.append(self.current_fit)        
+            self.xHistory.append(self.current_x)
+            self.yHistory.append(self.current_y)
+            self.fitHistory.append(self.current_fit)
+        else:
+            self.baseHistory.append(0)
+            self.curveHistory.append(0)
+            self.xHistory.append([0])
+            self.yHistory.append([0])
+            self.fitHistory.append([0,0,0])
         return 0
     
     def addLane(self,x,y):
@@ -267,14 +273,15 @@ class Lane(object):
         return data_sum/weight_sum
 
     def deriveGoodFit(self):
-        if len(self.baseHistory) > 0:
+        if not all(v == 0 for v in self.baseHistory):
             yFit = []
             xFit = []
             weightsFit = []
             for x,y,weight in zip(reversed(self.xHistory),reversed(self.yHistory),self.weights):
-                yFit.extend(y)
-                xFit.extend(x)
-                weightsFit.extemd(np.ones_like(xFit)*weight)
+                if len(x) > 1:
+                    yFit.extend(y)
+                    xFit.extend(x)
+                    weightsFit.extend(np.ones_like(x)*weight)
             self.good_fit = self._fitPoly(xFit,yFit,weightsFit)
         else:
             self.good_fit = self.current_fit
