@@ -106,44 +106,58 @@ class LanesFinder(object):
         warped = cv2.warpPerspective(img,mat,img_size,flags=cv2.INTER_LINEAR)
         return warped
     
-    def findLane(self,warped,nwindows=9,margin=100,minpix=50):
-    
-        base = self._findLaneCenter(warped)           
-        nRows = warped.shape[0]
-                   
-        # Set height of windows
-        window_height = np.int(nRows/nwindows)
+    def findLane(self,warped,lane,mid=0,nwindows=9,margin=100,minpix=50):
+        lane_inds = []
+        x_ind = []
+        y_ind = []
         # Identify the x and y positions of all nonzero pixels in the image
         nonzero = warped.nonzero()
         nonzeroy = np.array(nonzero[0])
         nonzerox = np.array(nonzero[1])
-        # Current positions to be updated for each window
-        current = base
-        # Create empty lists to receive left and right lane pixel indices
-        lane_inds = []
-        
-        # Step through the windows one by one
-        for window in range(nwindows):
-            # Identify window boundaries in x and y (and right and left)
-            win_y_low = nRows - (window+1)*window_height
-            win_y_high = nRows - window*window_height
-            win_x_low = current - margin
-            win_x_high = current + margin
- 
-             
-            # Identify the nonzero pixels in x and y within the window
-            good_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & (nonzerox >= win_x_low) & (nonzerox < win_x_high)).nonzero()[0]
+        if not all(v == 0 for v in lane.baseHistory):
+            nonzero = warped.nonzero()
+            nonzeroy = np.array(nonzero[0])
+            nonzerox = np.array(nonzero[1])
+            lane_inds = ((nonzerox > (lane.good_fit[0]*(nonzeroy**2) + lane.good_fit[1]*nonzeroy + lane.good_fit[2] - margin)-mid) & (nonzerox < (lane.good_fit[0]*(nonzeroy**2) + lane.good_fit[1]*nonzeroy + lane.good_fit[2] + margin)-mid)) 
             
-            # Append these indices to the lists
-            lane_inds.append(good_inds)
-            # If you found > minpix pixels, recenter next window on their mean position
-            if len(good_inds) > minpix:
-                current = np.int(np.mean(nonzerox[good_inds]))
-    
-        # Concatenate the arrays of indices
-        lane_inds = np.concatenate(lane_inds)
-        x_ind = nonzerox[lane_inds]
-        y_ind = nonzeroy[lane_inds] 
+            # extract left and right line pixel positions
+            x_ind = nonzerox[lane_inds]
+            y_ind = nonzeroy[lane_inds] 
+            lane.pro = 1
+        if not any(x_ind) or not any(y_ind):
+            lane_inds = []
+            base = self._findLaneCenter(warped)           
+            nRows = warped.shape[0]
+                       
+            # Set height of windows
+            window_height = np.int(nRows/nwindows)
+
+            # Current positions to be updated for each window
+            current = base
+            # Create empty lists to receive left and right lane pixel indices
+            
+            # Step through the windows one by one
+            for window in range(nwindows):
+                # Identify window boundaries in x and y (and right and left)
+                win_y_low = nRows - (window+1)*window_height
+                win_y_high = nRows - window*window_height
+                win_x_low = current - margin
+                win_x_high = current + margin
+            
+                # Identify the nonzero pixels in x and y within the window
+                good_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & (nonzerox >= win_x_low) & (nonzerox < win_x_high)).nonzero()[0]
+                
+                # Append these indices to the lists
+                lane_inds.append(good_inds)
+                # If you found > minpix pixels, recenter next window on their mean position
+                if len(good_inds) > minpix:
+                    current = np.int(np.mean(nonzerox[good_inds]))
+        
+            # Concatenate the arrays of indices
+            lane_inds = np.concatenate(lane_inds)
+            x_ind = nonzerox[lane_inds]
+            y_ind = nonzeroy[lane_inds]  
+            lane.pro = 0
         return [x_ind,y_ind]
     
     def checkDetection(self,leftLane,rightLane,curveOffset=500,baseOffset=0.1,fitOffset=1,laneWidth=3.7):
@@ -223,6 +237,7 @@ class Lane(object):
         self.hisotry_buf = history_buf
         self.y_eval = yEval
         self.weights = [0.5,0.25,0.15,0.7,0.03]
+        self.pro = 0
 
     def _fitPoly(self,x_ind,y_ind,weights=None):
         # Fit a second order polynomial to each

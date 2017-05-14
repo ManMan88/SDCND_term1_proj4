@@ -1,6 +1,4 @@
 import LaneDetection as ld
-import cv2
-import matplotlib.pyplot as plt
 from moviepy.editor import VideoFileClip
 
 def process_image(img):
@@ -14,8 +12,8 @@ def process_image(img):
     warped = lf.prespectiveTransform(binary,lf.M)
     #plt.imshow(warped,cmap='gray')
     mid = int(img.shape[1]/2)
-    leftx, lefty = lf.findLane(warped[:,:mid])
-    rightx, righty = lf.findLane(warped[:,mid:])
+    leftx, lefty = lf.findLane(warped[:,:mid],leftLane)
+    rightx, righty = lf.findLane(warped[:,mid:],rightLane,mid)
     rightx += mid
     
     leftLane.addLane(leftx,lefty)
@@ -35,7 +33,7 @@ def process_image(img):
 lf = ld.LanesFinder()
 leftLane = ld.Lane()
 rightLane = ld.Lane()
-vid_output = './output_videos/project_video.mp4'
+vid_output = './output_videos/project_video3.mp4'
 clip1 = VideoFileClip('./project_video.mp4')
 proj_clip = clip1.fl_image(process_image) #NOTE: this function expects color images!!
 proj_clip.write_videofile(vid_output, audio=False)
