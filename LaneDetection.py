@@ -46,10 +46,14 @@ class LanesFinder(object):
     
     def _setTransformParams(self):
         # Chosen 4 points
-        bot_left = [261,680]
-        top_left = [585,457]
-        top_right = [698,457]
+        bot_left = [262,680]
+        top_left = [580,460]
+        top_right = [702,460]
         bot_right = [1044,680]
+#        bot_left = [261,680]
+#        top_left = [555,477]
+#        top_right = [730,477]
+#        bot_right = [1044,680]
         dst_xl = 300
         dst_xr = 980
         dst_yb = 700
@@ -100,13 +104,37 @@ class LanesFinder(object):
         rBin = self._rChannel(undistorted)
         sobBin = self._xSobel(undistorted) 
         return sBin | rBin | sobBin
-        
+    
+    def maskBinary(self,img):
+        """
+        Applies an image mask.
+        Only keeps the region of the image defined by the polygon
+        formed from `vertices`. The rest of the image is set to black.
+        """
+        imageShape = img.shape
+#        vertices = np.array([[(0.95*imageShape[1],imageShape[0]),(0.05*imageShape[1],imageShape[0]),(0.45*imageShape[1],0.57*imageShape[0]),(0.55*imageShape[1],0.57*imageShape[0])]],dtype=np.int32)
+        vertices = np.array([[(0.9*imageShape[1],imageShape[0]),(0.1*imageShape[1],imageShape[0]),(0.46*imageShape[1],0.57*imageShape[0]),(0.54*imageShape[1],0.57*imageShape[0])]],dtype=np.int32)
+#        vertices = np.array([[(0.85*imageShape[1],imageShape[0]),(0.15*imageShape[1],imageShape[0]),(0.49*imageShape[1],0.57*imageShape[0]),(0.51*imageShape[1],0.57*imageShape[0])]],dtype=np.int32)
+        #defining a blank mask to start with
+        mask = np.zeros_like(img)   
+        #defining a 3 channel or 1 channel color to fill the mask with depending on the input image
+        if len(img.shape) > 2:
+            channel_count = img.shape[2]  # i.e. 3 or 4 depending on your image
+            ignore_mask_color = (255,) * channel_count
+        else:
+            ignore_mask_color = 255 
+        #filling pixels inside the polygon defined by "vertices" with the fill color    
+        cv2.fillPoly(mask, vertices, ignore_mask_color)
+        #returning the image only where mask pixels are nonzero
+        masked_image = cv2.bitwise_and(img, mask)
+        return masked_image
+
     def prespectiveTransform(self,img,mat):
         img_size = (img.shape[1],img.shape[0])
         warped = cv2.warpPerspective(img,mat,img_size,flags=cv2.INTER_LINEAR)
         return warped
     
-    def findLane(self,warped,lane,mid=0,nwindows=9,margin=100,minpix=50):
+    def findLane(self,warped,lane,mid=0,nwindows=9,margin=80,minpix=50):
         lane_inds = []
         x_ind = []
         y_ind = []
@@ -160,7 +188,7 @@ class LanesFinder(object):
             lane.pro = 0
         return [x_ind,y_ind]
     
-    def checkDetection(self,leftLane,rightLane,curveOffset=500,baseOffset=0.1,fitOffset=1,laneWidth=3.7):
+    def checkDetection(self,leftLane,rightLane,curveOffset=3000,baseOffset=0.1,fitOffset=1,laneWidth=3.7):
         leftLane.detected = True
         rightLane.detected = True
         if not all(v == 0 for v in leftLane.baseHistory) or not all(v == 0 for v in rightLane.baseHistory):
@@ -173,11 +201,14 @@ class LanesFinder(object):
                     print('right base offsets too large')
                     rightLane.detected = False
             if abs(leftLane.current_curve - rightLane.current_curve) > curveOffset:
+#            if abs(leftLane.current_curve - rightLane.current_curve) > curveOffset*min(leftLane.current_curve,rightLane.current_curve):
                 print('curve difference too large',leftLane.current_curve - rightLane.current_curve)
                 if abs(leftLane.movingAverage(leftLane.curveHistory)-leftLane.current_curve) > curveOffset:
+#                if abs(leftLane.movingAverage(leftLane.curveHistory)-leftLane.current_curve) > curveOffset*leftLane.movingAverage(leftLane.curveHistory):
                     print('left curve offsets too large',abs(leftLane.movingAverage(leftLane.curveHistory)-leftLane.current_curve))
                     leftLane.detected = False
                 if abs(rightLane.movingAverage(rightLane.curveHistory)-rightLane.current_curve) > curveOffset:
+#                if abs(rightLane.movingAverage(rightLane.curveHistory)-rightLane.current_curve) > curveOffset*rightLane.movingAverage(rightLane.curveHistory):
                     print('right curve offsets too large',abs(rightLane.movingAverage(rightLane.curveHistory)-rightLane.current_curve))
                     rightLane.detected = False
             if (abs(leftLane.current_fit[0] - rightLane.current_fit[0]) > fitOffset) or (abs(leftLane.current_fit[1] - rightLane.current_fit[1]) > fitOffset):
@@ -191,11 +222,9 @@ class LanesFinder(object):
         else:
             print("no data in history")
         return 0
-                
-            
-        return 0
 
-    def drawImage(self,undistorted,leftLane,rightLane):       
+
+    def drawImage(self,undistorted,leftLane,rightLane,mid,x2m_per_pix=3.7/680):       
         # Generate x and y values for plotting
         nRows = undistorted.shape[0]
         ploty = np.linspace(0, nRows-1, nRows)
@@ -216,7 +245,31 @@ class LanesFinder(object):
         # Warp the blank back to original image space using inverse perspective matrix (Minv)
         newwarp = self.prespectiveTransform(color_warp, self.Minv) 
         # Combine the result with the original image
-        final_img = cv2.addWeighted(undistorted, 1, newwarp, 0.3, 0)
+        weighted_img = cv2.addWeighted(undistorted, 1, newwarp, 0.3, 0)
+        curve_left = leftLane.movingAverage(leftLane.curveHistory)
+        curve_right = rightLane.movingAverage(rightLane.curveHistory)
+        if curve_left == 0:
+            curve_left = leftLane.current_curve
+        if curve_right == 0:
+            curve_right = rightLane.current_curve
+        curve = (curve_left + curve_right)/2
+		
+        base_left = leftLane.movingAverage(leftLane.baseHistory)
+        base_right = rightLane.movingAverage(rightLane.baseHistory)
+        if base_left == 0:
+            base_left = leftLane.current_base
+        if curve_right == 0:
+            base_right = rightLane.current_base
+        base = (base_left + base_right)/2 - mid*x2m_per_pix
+
+        curve_text = 'Radius of Curvature = ' + str(int(curve)) + '[m]'
+        if base <= 0:
+            base_text = 'Vehicle is %.2f[m] right of center' %(-base)
+        else:
+            base_text = 'Vehicle is %.2f[m] left of center' %(base)
+			
+        final_img = cv2.putText(weighted_img, curve_text, (50,50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255))
+        final_img = cv2.putText(final_img, base_text, (50,100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255))
         return final_img
     
 
@@ -246,7 +299,7 @@ class Lane(object):
     def _findBase(self,fit,x2m_per_pix=3.7/680):
         return np.polyval(fit,self.y_eval)*x2m_per_pix
     
-    def _findCurve(self,x,y,y2m_per_pix=30/720,x2m_per_pix=3.7/680):
+    def _findCurve(self,x,y,y2m_per_pix=30/500,x2m_per_pix=3.7/680):
         fit_m = self._fitPoly(x2m_per_pix*x,y2m_per_pix*y)
         return ((1 + (2*fit_m[0]*self.y_eval*y2m_per_pix + fit_m[1])**2)**1.5) / np.absolute(2*fit_m[0])
             
@@ -283,8 +336,11 @@ class Lane(object):
         weight_sum = 0
         data_sum = 0
         for sample,weight in zip(reversed(data),self.weights):
-            data_sum += sample*weight
-            weight_sum += weight
+            if not (sample == 0):
+                data_sum += sample*weight
+                weight_sum += weight
+        if weight_sum == 0:
+            return 0
         return data_sum/weight_sum
 
     def deriveGoodFit(self):
@@ -301,5 +357,3 @@ class Lane(object):
         else:
             self.good_fit = self.current_fit
         return 0
-    
-    
