@@ -14,7 +14,7 @@
 [image1]: ./writeup_images/test2.jpg "test image2"
 [image2]: ./writeup_images/calibration2.jpg "chessboard before"
 [image3]: ./writeup_images/undistort2.jpg "Undistorted chessboard"
-[image4]: ./writeup_images/undistort_test2.jpg "Undistorted"
+[image4]: ./writeup_images/undistorted_test2.jpg "Undistorted"
 [image5]: ./writeup_images/binary2.bmp "Binary Example"
 [image6]: ./writeup_images/straight_lines2_points.jpg "points"
 [image7]: ./writeup_images/transformed_image2.jpg "Road Transformed"
@@ -47,11 +47,15 @@ I then used the output `objpoints` and `imgpoints` to compute the camera calibra
 
 Here is a test image:
 
+
 ![alt text][image2]
+
 
 And here is the undistorted image:
 
+
 ![alt text][image3]
+
 
 ### Pipeline (single images)
 
@@ -60,11 +64,14 @@ The code for this step is contained in the 2nd section of the IPython notebook l
 
 The distortion correction is simply done with the function `cv2.undistort()` using the parameters obtained by `cv2.calibrateCamera()`. 
 
-Here is an example of undistorted road image
+Here is an example of original road image
+
 
 ![alt text][image1]
 
-And here is an example of the distorted road image
+
+And here is an example of the undistorted road image
+
 
 ![alt text][image4]
 
@@ -108,6 +115,7 @@ The base of each lane is found by finding the max valuse i an histogram of the b
 After the pixels related to the lanes are found, the lanes are fitted with a 2nd degree polinom using the `np.poly` function.
 
 Here is an example of a processed binary image. 
+
 
 ![alt text][image9]
 
