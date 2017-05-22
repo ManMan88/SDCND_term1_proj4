@@ -11,18 +11,18 @@
 
 [//]: # (Image References)
 
-[image1]: ./output_images/test2.jpg "test image2"
-[image2]: ./output_images/calibration2.jpg "chessboard before"
-[image3]: ./output_images/undistort2.jpg "Undistorted chessboard"
-[image4]: ./output_images/undistort_test2.jpg "Undistorted"
-[image5]: ./output_images/binary2.bmp "Binary Example"
-[image6]: ./output_images/straight_lines2_points.jpg "points"
-[image7]: ./output_images/transformed_image2.jpg "Road Transformed"
-[image8]: ./output_images/transformed_image2.bmp "Road binary Transformed"
-[image9]: ./output_images/fitted2.jpg "Fit Visual"
-[image10]: ./output_images/final_test2.jpg "Output"
-[image11]: ./output_images/final_test4.jpg "Output2"
-[video1]: ./output_videos/project_video.mp4 "Video"
+[image1]: ./writeup_images/test2.jpg "test image2"
+[image2]: ./writeup_images/calibration2.jpg "chessboard before"
+[image3]: ./writeup_images/undistort2.jpg "Undistorted chessboard"
+[image4]: ./writeup_images/undistort_test2.jpg "Undistorted"
+[image5]: ./writeup_images/binary2.bmp "Binary Example"
+[image6]: ./writeup_images/straight_lines2_points.jpg "points"
+[image7]: ./writeup_images/transformed_image2.jpg "Road Transformed"
+[image8]: ./writeup_images/transformed_image2.bmp "Road binary Transformed"
+[image9]: ./writeup_images/fitted2.jpg "Fit Visual"
+[image10]: ./writeup_images/final_test2.jpg "Output"
+[image11]: ./writeup_images/final_test4.jpg "Output2"
+[video1]: ./writeup_images/project_video.mp4 "Video"
 
 ## Rubric Points
 
@@ -46,8 +46,11 @@ I start by preparing "object points", which will be the (x, y, z) coordinates of
 I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  Lastly, I applied this distortion correction to the test image using the `cv2.undistort()` function.
 
 Here is a test image:
+
 ![alt text][image2]
+
 And here is the undistorted image:
+
 ![alt text][image3]
 
 ### Pipeline (single images)
@@ -58,8 +61,11 @@ The code for this step is contained in the 2nd section of the IPython notebook l
 The distortion correction is simply done with the function `cv2.undistort()` using the parameters obtained by `cv2.calibrateCamera()`. 
 
 Here is an example of undistorted road image
+
 ![alt text][image1]
+
 And here is an example of the distorted road image
+
 ![alt text][image4]
 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
@@ -85,6 +91,7 @@ I draw 4 points on the 2 straight lanes example images, on the lanes themselfs, 
 | 261, 680      | 980, 200      |
 
 Here are the source points:
+
 ![alt text][image6]
 
 Here is the test image after transformation.
@@ -118,6 +125,7 @@ The code for this step is contained in the 7th section of the IPython notebook l
 Here is an example of a processed image with identified lanes:
 
 ![alt text][image10]
+
 ![alt text][image11]
 
 ---
@@ -127,6 +135,7 @@ Here is an example of a processed image with identified lanes:
 #### Provide a link to your final video output.
 
 Here's a [link to my video result](./output_videos/project_video.mp4)
+
 (![alt text][video1])
 
 ---
