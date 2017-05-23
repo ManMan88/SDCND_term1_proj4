@@ -69,19 +69,20 @@ class LanesFinder(object):
         binary_out[(channel >= low_thresh) & (channel < high_thresh)] = 1
         return binary_out
     
-    def _sChannel(self,img,lowThreshold=100,highThreshold=255):
-        hls = cv2.cvtColor(img,cv2.COLOR_BGR2HLS)
-        sChannel = hls[:,:,2]
+    def _bChannel(self,img,lowThreshold=150,highThreshold=255):
+        lab = cv2.cvtColor(img,cv2.COLOR_RGB2LAB)
+        sChannel = lab[:,:,2]
         binary_out = self._binChannel(sChannel,lowThreshold,highThreshold)
         return binary_out
     
-    def _rChannel(self,img,lowThreshold=230,highThreshold=255):
-        rChannel = img[:,:,2]
+    def _lChannel(self,img,lowThreshold=215,highThreshold=255):
+        luv = cv2.cvtColor(img,cv2.COLOR_RGB2LUV)
+        rChannel = luv[:,:,0]
         binary_out = self._binChannel(rChannel,lowThreshold,highThreshold)
         return binary_out
     
-    def _xSobel(self,img,lowThreshold=30,highThreshold=255,kernel=11):
-        hsv = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
+    def _xSobel(self,img,lowThreshold=80,highThreshold=255,kernel=11):
+        hsv = cv2.cvtColor(img,cv2.COLOR_RGB2HSV)
         vChannel = hsv[:,:,2]
         sobel = cv2.Sobel(vChannel,cv2.CV_64F,1,0,ksize=kernel)
         abs_sobel = np.absolute(sobel)
@@ -100,10 +101,10 @@ class LanesFinder(object):
          return cv2.undistort(img,self.distMat,self.dist,None,self.distMat)
        
     def combinedBinary(self,undistorted):
-        sBin = self._sChannel(undistorted)
-        rBin = self._rChannel(undistorted)
+        bBin = self._bChannel(undistorted)
+        lBin = self._lChannel(undistorted)
         sobBin = self._xSobel(undistorted) 
-        return sBin | rBin | sobBin
+        return bBin | lBin | sobBin
     
     def maskBinary(self,img):
         """
@@ -134,7 +135,7 @@ class LanesFinder(object):
         warped = cv2.warpPerspective(img,mat,img_size,flags=cv2.INTER_LINEAR)
         return warped
     
-    def findLane(self,warped,lane,mid=0,nwindows=9,margin=80,minpix=50):
+    def findLane(self,warped,lane,mid=0,nwindows=9,margin=100,minpix=50):
         lane_inds = []
         x_ind = []
         y_ind = []
@@ -200,17 +201,17 @@ class LanesFinder(object):
                 if abs(rightLane.movingAverage(rightLane.baseHistory)-rightLane.current_base) >  baseOffset:
                     print('right base offsets too large')
                     rightLane.detected = False
-            if abs(leftLane.current_curve - rightLane.current_curve) > curveOffset:
-#            if abs(leftLane.current_curve - rightLane.current_curve) > curveOffset*min(leftLane.current_curve,rightLane.current_curve):
-                print('curve difference too large',leftLane.current_curve - rightLane.current_curve)
-                if abs(leftLane.movingAverage(leftLane.curveHistory)-leftLane.current_curve) > curveOffset:
-#                if abs(leftLane.movingAverage(leftLane.curveHistory)-leftLane.current_curve) > curveOffset*leftLane.movingAverage(leftLane.curveHistory):
-                    print('left curve offsets too large',abs(leftLane.movingAverage(leftLane.curveHistory)-leftLane.current_curve))
-                    leftLane.detected = False
-                if abs(rightLane.movingAverage(rightLane.curveHistory)-rightLane.current_curve) > curveOffset:
-#                if abs(rightLane.movingAverage(rightLane.curveHistory)-rightLane.current_curve) > curveOffset*rightLane.movingAverage(rightLane.curveHistory):
-                    print('right curve offsets too large',abs(rightLane.movingAverage(rightLane.curveHistory)-rightLane.current_curve))
-                    rightLane.detected = False
+#            if abs(leftLane.current_curve - rightLane.current_curve) > curveOffset:
+##            if abs(leftLane.current_curve - rightLane.current_curve) > curveOffset*min(leftLane.current_curve,rightLane.current_curve):
+#                print('curve difference too large',leftLane.current_curve - rightLane.current_curve)
+#                if abs(leftLane.movingAverage(leftLane.curveHistory)-leftLane.current_curve) > curveOffset:
+##                if abs(leftLane.movingAverage(leftLane.curveHistory)-leftLane.current_curve) > curveOffset*leftLane.movingAverage(leftLane.curveHistory):
+#                    print('left curve offsets too large',abs(leftLane.movingAverage(leftLane.curveHistory)-leftLane.current_curve))
+#                    leftLane.detected = False
+#                if abs(rightLane.movingAverage(rightLane.curveHistory)-rightLane.current_curve) > curveOffset:
+##                if abs(rightLane.movingAverage(rightLane.curveHistory)-rightLane.current_curve) > curveOffset*rightLane.movingAverage(rightLane.curveHistory):
+#                    print('right curve offsets too large',abs(rightLane.movingAverage(rightLane.curveHistory)-rightLane.current_curve))
+#                    rightLane.detected = False
             if (abs(leftLane.current_fit[0] - rightLane.current_fit[0]) > fitOffset) or (abs(leftLane.current_fit[1] - rightLane.current_fit[1]) > fitOffset):
                 print('fit[0] difference too large')
                 if (abs(leftLane.movingAverage(np.array(leftLane.fitHistory)[:,0])-leftLane.current_fit[0]) > fitOffset) or (abs(leftLane.movingAverage(np.array(leftLane.fitHistory)[:,1])-leftLane.current_fit[1]) > fitOffset):

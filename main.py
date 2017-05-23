@@ -1,12 +1,16 @@
 import LaneDetection as ld
 from moviepy.editor import VideoFileClip
+import cv2
 
+counter = 0
 def process_image(img):
     # pipeline
     #img = cv2.imread('./straight_lines1.jpg') # ADD! take image from video
+    global counter
+    counter+=1
     undistorted = lf.undistort(img)
     binary = lf.combinedBinary(undistorted)
-    #masked_binary = lf.maskBinary(binary)
+#    masked_binary = lf.maskBinary(binary)
     warped = lf.prespectiveTransform(binary,lf.M)
 #    warped = lf.prespectiveTransform(masked_binary,lf.M)
     mid = int(img.shape[1]/2)
@@ -23,7 +27,7 @@ def process_image(img):
     rightLane.deriveGoodFit()
     
     processed_img = lf.drawImage(undistorted,leftLane,rightLane,mid)
-    return processed_img 
+    return processed_img
 
 
 
