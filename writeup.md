@@ -78,7 +78,7 @@ And here is an example of the undistorted road image
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
 The code for this step is contained in the 3rd section of the IPython notebook located in "./P4.ipynb" (or in the `combinedBinary()` function in `LaneDetection.py`).  
-In the IPython notebook I tested some different color transform and gradient thresholdings, such as: the R channel of the RGB image; the S channel of the HSV and HLS transformed image; the gradient in x and y directions; the gradient magnitude and angle. I finaly chose to use only the: S channel of the HLS transformed image, the R channel of the RGB image and the gradient in x direction.
+In the IPython notebook I tested some different color transform and gradient thresholdings, such as: the R channel of the RGB image; B channel of the LAB transformed image; the L channel of the LUV image; the S channel of the HSV and HLS transformed image; the gradient in x and y directions; the gradient magnitude and angle. I finaly chose to use only the: B channel of the LAB transformed image, the L channel of the LUV image and the gradient in x direction.
 
 Here's an example of my output for this step. 
 
