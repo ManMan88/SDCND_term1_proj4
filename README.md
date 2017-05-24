@@ -146,7 +146,6 @@ Here is an example of a processed image with identified lanes:
 
 Here's a [link to my video result](./output_videos/project_video.mp4)
 
-(![alt text][video1])
 
 ---
 
